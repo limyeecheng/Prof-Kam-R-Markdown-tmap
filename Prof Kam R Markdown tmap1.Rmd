@@ -1,0 +1,251 @@
+---
+title: "tmap"
+author: "yeecheng"
+date: "14 July 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r echo=FALSE, eval=TRUE, message=FALSE, warning=FALSE}
+packages = c('sf', 'tmap', 'RColorBrewer', 'classInt', 'tidyverse')
+for (p in packages){
+if(!require(p, character.only = T)){
+install.packages(p)
+}
+library(p,character.only = T)
+}
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+```{r echo=FALSE, eval=TRUE, message=FALSE, warning=FALSE}
+mpsz <- st_read(dsn = "data/data.gov",
+layer = "MP14_SUBZONE_WEB_PL")
+```
+
+```{r}
+popagsex <- read_csv("data/AttributeTables/respopagsex2000to2017.csv")
+```
+
+```{r}
+popagsex2017_male <- popagsex %>%
+filter(Sex == "Males") %>%
+filter(Time == 2017) %>%
+spread(AG, Pop) %>%
+mutate(YOUNG = `0_to_4`+`5_to_9`+`10_to_14`+
+`15_to_19`+`20_to_24`) %>%
+mutate(`ECONOMY ACTIVE` = rowSums(.[9:13])+
+rowSums(.[15:17]))%>%
+mutate(`AGED`=rowSums(.[18:22])) %>%
+mutate(`TOTAL`=rowSums(.[5:22])) %>%
+mutate(`DEPENDENCY` = (`YOUNG` + `AGED`)
+/`ECONOMY ACTIVE`) %>%
+mutate_at(.vars = vars(PA, SZ), .funs = funs(toupper))
+```
+
+```{r}
+mpsz_agemale2017 <- left_join(mpsz, popagsex2017_male,
+by = c("SUBZONE_N" = "SZ"))
+```
+
+```{r}
+qtm(mpsz_agemale2017, fill = "DEPENDENCY")
+```
+
+```{r}
+tm_shape(mpsz_agemale2017) +
+tm_polygons()
+```
+
+```{r}
+tm_shape(mpsz_agemale2017) +
+tm_polygons("DEPENDENCY")
+```
+
+```{r}
+tm_shape(mpsz_agemale2017) +
+tm_fill("DEPENDENCY")
+```
+
+```{r}
+tm_shape(mpsz_agemale2017)+
+tm_fill("DEPENDENCY") +
+tm_borders(alpha = 0.8, lty="dashed")
+```
+
+```{r}
+tm_shape(mpsz_agemale2017)+
+tm_fill("DEPENDENCY",
+n = 5,
+style = "quantile") +
+tm_borders(alpha = 0.5)
+```
+
+```{r}
+tm_shape(mpsz_agemale2017)+
+tm_fill("DEPENDENCY",
+n = 5,
+style = "equal") +
+tm_borders(alpha = 0.5)
+```
+
+```{r}
+tm_shape(mpsz_agemale2017)+
+tm_fill("DEPENDENCY",
+style = "quantile",
+palette = "Greens") +
+tm_borders(alpha = 0.5)
+```
+
+```{r}
+tm_shape(mpsz_agemale2017)+
+tm_fill("DEPENDENCY",
+style = "quantile",
+palette = "-Greens") +
+tm_borders(alpha = 0.5)
+```
+
+```{r}
+tm_shape(mpsz_agemale2017)+
+tm_fill("DEPENDENCY",
+style = "quantile",
+palette = "Blues",
+legend.hist = TRUE,
+legend.is.portrait = TRUE,
+legend.hist.z = 0.1) +
+tm_layout(legend.height = 0.45,
+legend.width = 0.35,
+legend.outside = TRUE,
+legend.position = c("right", "bottom"),
+frame = FALSE) +
+tm_borders(alpha = 0.5)
+```
+
+```{r}
+tm_shape(mpsz_agemale2017)+
+tm_fill("DEPENDENCY",
+style = "quantile",
+palette = "-Greens") +
+tm_borders(alpha = 0.5) +
+tmap_style("classic")
+```
+##note: tmap_style will override most settings, such as font type
+
+```{r}
+tm_shape(mpsz_agemale2017)+
+tm_fill("DEPENDENCY",
+style = "quantile",
+palette = "Blues",
+title = "No. of persons") +
+tm_layout(main.title = "Distribution of Dependency Ratio \nby Planning Subzone",
+main.title.position = "center",
+main.title.size = 1.2,
+legend.height = 0.45,
+legend.width = 0.35,
+frame = TRUE) +
+tm_borders(alpha = 0.5) +
+tm_compass(type="8star", size = 2) +
+tm_scale_bar() +
+tm_grid() +
+tm_credits("Source: Planning Sub-zone boundary from Urban Redevelopment
+Authorithy (URA)\n and Population data from Department of Statistics DOS",
+position = c("left", "bottom"))
+```
+
+```{r}
+tmap_style("white")
+```
+
+```{r}
+tm_shape(mpsz_agemale2017)+
+tm_fill(c("YOUNG", "AGED"),
+style = "equal",
+palette = "Blues") +
+tm_layout(legend.position = c("right", "bottom")) +
+tm_borders(alpha = 0.5) +
+tmap_style("white")
+```
+
+```{r}
+tm_shape(mpsz_agemale2017)+
+tm_polygons(c("DEPENDENCY","DEPENDENCY"),
+style = c("equal", "quantile"),
+palette = list("Blues","Blues")) +
+tm_layout(legend.position = c("right", "bottom"))
+```
+
+```{r}
+tm_shape(mpsz_agemale2017) +
+tm_fill("DEPENDENCY",
+style = "quantile",
+palette = "Blues",
+thres.poly = 0) +
+tm_facets(by="REGION_N",
+free.coords=TRUE,
+drop.shapes=TRUE) +
+tm_layout(legend.show = FALSE,
+title.position = c("center", "center"),
+title.size = 20) +
+tm_borders(alpha = 0.5)
+```
+
+```{r}
+youngmap <- tm_shape(mpsz_agemale2017)+
+tm_polygons("YOUNG",
+style = "quantile",
+palette = "Blues")
+agedmap <- tm_shape(mpsz_agemale2017)+
+tm_polygons("AGED",
+style = "quantile",
+palette = "Blues")
+tmap_arrange(youngmap, agedmap, asp=1, ncol=2)
+```
+
+```{r}
+tm_shape(mpsz_agemale2017[mpsz_agemale2017$REGION_N=="CENTRAL REGION", ])+
+tm_fill("DEPENDENCY",
+style = "quantile",
+palette = "Blues",
+legend.hist = TRUE,
+legend.is.portrait = TRUE,
+legend.hist.z = 0.1) +
+tm_layout(legend.outside = TRUE,
+legend.height = 0.45,
+legend.width = 5.0,
+legend.position = c("right", "bottom"),
+frame = FALSE) +
+tm_borders(alpha = 0.5)
+```
+
+```{r}
+tmap_mode("view")
+mpsz_wgs84 <- st_transform(mpsz_agemale2017, 4326)
+tm_shape(mpsz_wgs84)+
+tm_fill("DEPENDENCY",
+n = 6,
+style = "quantile",
+palette = "Blues") +
+tm_borders(alpha = 0.5)
+```
+## to switch tmap mode back to plotting mode, running the following code chunk:
+```{r}
+tmap_mode("plot")
+```
+

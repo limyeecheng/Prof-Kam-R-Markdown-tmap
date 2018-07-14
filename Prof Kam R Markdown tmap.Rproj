@@ -1,0 +1,75 @@
+---
+title: "tmap"
+author: "yeecheng"
+date: "14 July 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+```{r echo=TRUE, eval=TRUE, message=FALSE, warning=FALSE}
+packages = c('sf', 'tmap', 'RColorBrewer', 'classInt', 'tidyverse')
+for (p in packages){
+if(!require(p, character.only = T)){
+install.packages(p)
+}
+library(p,character.only = T)
+}
+```
+
+#3.0 Geospatial Data Wrangling
+##3.1 Importing Geospatial Data into R
+```{r echo=TRUE, eval=TRUE, message=FALSE, warning=FALSE}
+mpsz <- st_read(dsn = "data/data.gov",
+layer = "MP14_SUBZONE_WEB_PL")
+```
+
+##3.2 Importing Attribute Data into R
+```{r echo=TRUE, eval=TRUE, message=FALSE, warning=FALSE}
+popagsex <- read_csv("data/AttributeTables/respopagsex2000to2017.csv")
+```
+
+#3.3 Data Preparation
+##3.3.1 Data wrangling
+```{r echo=TRUE, fig.width=1, fig.height=1}
+popagsex2017_male <- popagsex %>%
+filter(Sex == "Males") %>%
+filter(Time == 2017) %>%
+spread(AG, Pop) %>%
+mutate(YOUNG = `0_to_4`+`5_to_9`+`10_to_14`+
+`15_to_19`+`20_to_24`) %>%
+mutate(`ECONOMY ACTIVE` = rowSums(.[9:13])+
+rowSums(.[15:17]))%>%
+mutate(`AGED`=rowSums(.[18:22])) %>%
+mutate(`TOTAL`=rowSums(.[5:22])) %>%
+mutate(`DEPENDENCY` = (`YOUNG` + `AGED`)
+/`ECONOMY ACTIVE`) %>%
+mutate_at(.vars = vars(PA, SZ), .funs = funs(toupper)) %>%
+select(`PA`, `SZ`, `YOUNG`, `ECONOMY ACTIVE`, `AGED`,
+`TOTAL`, `DEPENDENCY`)
+```
+
+
+
